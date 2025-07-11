@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The GDG Community </title>
+    <style>
+      :root {
+        --google-blue: #4285f4;
+        --google-red: #db4437;
+        --google-yellow: #f4b400;
+        --google-green: #0f9d58;
+        --bg-light: #f7f9fc;
+        --text-dark: #222;
+      }
+      * { box-sizing: border-box; font-family: "Segoe UI", Tahoma, sans-serif; }
+      body {
+        margin: 0;
+        background: var(--bg-light);
+        color: var(--text-dark);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      header {
+        background: var(--google-blue);
+        color: #fff;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      header h1 { margin: 0; font-size: 1.4rem; font-weight: 600; }
+      main { flex: 1; max-width: 720px; width: 100%; margin: 32px auto; padding: 0 16px; }
+      .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        padding: 24px;
+        margin-bottom: 24px;
+        animation: fadeIn 0.4s ease;
+      }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      label { font-weight: 600; display: block; margin-bottom: 6px; }
+      input[type="text"], input[type="password"], select, textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-bottom: 16px;
+      }
+      textarea { resize: vertical; min-height: 120px; }
+      .btn {
+        appearance: none;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 12px 20px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #fff;
+        transition: background 0.2s ease;
+      }
+      .btn-primary { background: var(--google-green); }
+      .btn-primary:hover { background: #0b7e47; }
+      .category-badge { display: inline-block; font-size: 0.8rem; font-weight: 600; padding: 4px 8px; border-radius: 6px; margin-right: 6px; margin-bottom: 6px; }
+      .events { background: var(--google-red); color: #fff; }
+      .members { background: var(--google-yellow); color: #fff; }
+      .facilities { background: var(--google-blue); color: #fff; }
+      .hidden { display: none; }
+      footer { text-align: center; padding: 16px; font-size: 0.9rem; color: #666; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2.04c5.5 0 9.96 4.46 9.96 9.96 0 5.5-4.46 9.96-9.96 9.96a9.93 9.93 0 0 1-7.025-2.87l2.985-2.464A6.18 6.18 0 0 0 12 18.18c3.42 0 6.2-2.78 6.2-6.2S15.42 5.8 12 5.8a6.11 6.11 0 0 0-5.7 3.68L3.21 7.04A9.93 9.93 0 0 1 12 2.04Z" fill="#fff"/>
+      </svg>
+      <h1>The GDG Community </h1>
+    </header>
+    <main>
+      <!-- Login form -->
+      <section id="login-card" class="card">
+        <h2>Login</h2>
+        <p style="margin-top: 0; color: #555">Please enter your credentials to continue.</p>
+        <label for="memberId">Unique ID</label>
+        <input type="text" id="memberId" placeholder="e.g. GDMEMBER007" />
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Password" />
+        <button class="btn btn-primary" id="loginBtn">Login</button>
+      </section>
+      <!-- Member review form -->
+      <section id="review-card" class="card hidden">
+        <h2>Submit Your Review</h2>
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="events">Events</option>
+          <option value="members">Members</option>
+          <option value="faculties">Faculties</option>
+        </select>
+        <label for="reviewText">Your Feedback</label>
+        <textarea id="reviewText" placeholder="Share your thoughts..." maxlength="500"></textarea>
+        <button class="btn btn-primary" id="submitReviewBtn">Submit Review</button>
+      </section>
+      <!-- Owner dashboard -->
+      <section id="owner-card" class="card hidden">
+        <h2>All Submitted Reviews</h2>
+        <div id="reviewsContainer"></div>
+      </section>
+    </main>
+    <footer>Built with love using Google colours. Prototype only.</footer>
+    <script>
+      // Cached nodes
+      const loginCard = document.getElementById("login-card");
+      const reviewCard = document.getElementById("review-card");
+      const ownerCard = document.getElementById("owner-card");
+      const loginBtn = document.getElementById("loginBtn");
+      const submitReviewBtn = document.getElementById("submitReviewBtn");
+      const memberIdInput = document.getElementById("memberId");
+      const passwordInput = document.getElementById("password");
+      const categorySelect = document.getElementById("category");
+      const reviewTextArea = document.getElementById("reviewText");
+      const reviewsContainer = document.getElementById("reviewsContainer");
+
+      // Storage helpers
+      const getReviews = () => {
+        try { return JSON.parse(localStorage.getItem("gds_reviews")) || []; } catch { return []; }
+      };
+      const saveReview = (review) => {
+        const reviews = getReviews();
+        reviews.push(review);
+        localStorage.setItem("gds_reviews", JSON.stringify(reviews));
+      };
+      const renderReviews = () => {
+        const reviews = getReviews();
+        reviewsContainer.innerHTML = reviews.length ? "" : '<p style="color:#777">No reviews yet.</p>';
+        reviews.sort((a,b)=>b.timestamp-a.timestamp).forEach(r=>{
+          const card=document.createElement("div");
+          card.className="card";
+          const date=new Date(r.timestamp).toLocaleString();
+          card.innerHTML=`<span class="category-badge ${r.category}">${r.category.charAt(0).toUpperCase()+r.category.slice(1)}</span><small style="color:#555">${date}</small><p style="margin-top:12px;white-space:pre-line">${r.text}</p>`;
+          reviewsContainer.appendChild(card);
+        });
+      };
+
+      // Login handler
+      loginBtn.addEventListener("click", () => {
+        const id = memberIdInput.value.trim().toUpperCase();
+        const pwd = passwordInput.value.trim();
+        if (!id || !pwd) { alert("Enter both ID and password"); return; }
+        // Owner
+        if (id === "GDVANSH") {
+          if (pwd === "GDVANSH") {
+            loginCard.classList.add("hidden");
+            ownerCard.classList.remove("hidden");
+            renderReviews();
+          } else { alert("Incorrect password"); }
+          return;
+        }
+        // Member pattern GDMEMBER…
+        if (id.startsWith("GDMEMBER") && pwd === "12345678") {
+          sessionStorage.setItem("gds_member_id", id);
+          loginCard.classList.add("hidden");
+          reviewCard.classList.remove("hidden");
+          return;
+        }
+        alert("Invalid credentials");
+      });
+
+      // Review submission
+      submitReviewBtn.addEventListener("click", () => {
+        const category = categorySelect.value;
+        const text = reviewTextArea.value.trim();
+        if (!text) { alert("Review cannot be empty"); return; }
+        saveReview({ category, text, timestamp: Date.now() });
+        alert("Thank you! Your review has been submitted anonymously.");
+        reviewTextArea.value = "";
+        categorySelect.value = "events";
+      });
+    </script>
+  </body>
+</html>
